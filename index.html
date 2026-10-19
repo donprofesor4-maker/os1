@@ -1469,5 +1469,18 @@ textarea,input[type=text]{font-size:19.2px;border-width:1px;border-radius:6px}
 
 })();
 </script>
+<button id="pantallaCompleta" type="button" aria-label="Activar pantalla completa" aria-pressed="false" title="Pantalla completa">⛶ Pantalla completa</button>
+<style>
+#pantallaCompleta{position:fixed;right:18px;bottom:76px;z-index:990;padding:8px 12px;border:1px solid #bfd0e4;border-radius:7px;background:#f6faffee;color:#294b70;font:14px "Segoe UI",Arial,sans-serif;cursor:pointer;box-shadow:0 2px 8px #18375b12}
+#pantallaCompleta:hover{background:#e2eeff}#pantallaCompleta:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+</style>
+<script>
+(function(){
+const b=document.getElementById('pantallaCompleta');
+function update(){const on=!!(document.fullscreenElement||document.webkitFullscreenElement);b.textContent=on?'⛶ Salir de pantalla completa':'⛶ Pantalla completa';b.setAttribute('aria-pressed',String(on));b.setAttribute('aria-label',on?'Salir de pantalla completa':'Activar pantalla completa');}
+b.addEventListener('click',async function(){try{if(document.fullscreenElement||document.webkitFullscreenElement){if(document.exitFullscreen)await document.exitFullscreen();else if(document.webkitExitFullscreen)document.webkitExitFullscreen();}else{const el=document.documentElement;if(el.requestFullscreen)await el.requestFullscreen();else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();else throw new Error('unsupported');}update();}catch(e){b.textContent='Usa el menú del navegador → Pantalla completa';setTimeout(update,4000);}});
+document.addEventListener('fullscreenchange',update);document.addEventListener('webkitfullscreenchange',update);update();
+})();
+</script>
 </body>
 </html>
