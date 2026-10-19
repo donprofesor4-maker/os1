@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OS1</title>
+<style>
+  :root{
+    --azul:#2B6CB0;
+    --azul-claro:#E4F0FB;
+    --amarillo:#FFD447;
+    --verde:#3FA96B;
+    --rojo:#E36B5B;
+    --morado:#8E6BC9;
+    --tinta:#1F2A37;
+    --papel:#FFFFFF;
+    --gris:#E9EEF4;
+    --sombra:0 10px 24px rgba(31,42,55,.18);
+    --radio:18px;
+    --fuente: "Trebuchet MS", "Verdana", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:var(--fuente);
+    font-size:22.8px;
+    color:var(--tinta);
+    background:linear-gradient(160deg,#BFE3FF 0%, #E8F3FF 45%, #FFF7DE 100%);
+    overflow:hidden;
+    -webkit-tap-highlight-color:transparent;
+  }
+  button{font-family:inherit;}
+
+  /* ====== ESCRITORIO ====== */
+  #escritorio{position:fixed;inset:0;padding:18px 18px 96px 18px;display:grid;grid-template-columns:1fr 320px;gap:16px;}
+  #zonaIconos{
+    position:relative;overflow:auto;display:flex;flex-direction:column;border-radius:var(--radio);
+    background:rgba(255,255,255,.45);border:3px dashed rgba(43,108,176,.35);
+    padding:18px;
+  }
+  #zonaIconos h1{
+    font-size:31.2px;margin:0 0 4px;color:var(--azul);
+  }
+  #zonaIconos p.ayuda-mini{margin:0 0 14px;font-size:19.2px;color:#4A5A6A;}
+  #iconos{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:14px;list-style:none;margin:0;padding:0;
+  }
+  .icono{
+    background:var(--papel);border:4px solid transparent;border-radius:var(--radio);
+    padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:8px;
+    cursor:pointer;text-align:center;box-shadow:0 4px 12px rgba(31,42,55,.10);
+    transition:transform .08s ease, border-color .08s ease, background .08s ease;
+    min-height:130px;width:100%;
+  }
+  .icono:hover{transform:translateY(-2px);}
+  .icono .nombre{font-size:20.4px;font-weight:700;line-height:1.15;word-break:break-word;}
+  .icono.seleccionado{
+    border-color:var(--azul);background:var(--azul-claro);
+    box-shadow:0 0 0 5px rgba(43,108,176,.25), 0 6px 14px rgba(31,42,55,.16);
+  }
+  .icono.seleccionado .nombre::after{content:" ✓";color:var(--verde);}
+  .icono img,.icono svg{width:72px;height:72px;pointer-events:none;}
+  .icono .mini-tag{font-size:15.6px;background:var(--gris);border-radius:10px;padding:2px 8px;color:#4A5A6A;}
+
+  /* ====== GALERÍA DERECHA ====== */
+  #galeria{
+    background:rgba(255,255,255,.72);border-radius:var(--radio);
+    border:3px solid rgba(143,107,201,.35);padding:14px;overflow:auto;
+  }
+  #galeria h2{font-size:24px;margin:0 0 4px;color:var(--morado);}
+  #galeria p{margin:0 0 12px;font-size:18px;color:#4A5A6A;}
+  #galeriaGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .gal-item{
+    background:#fff;border:3px solid transparent;border-radius:14px;padding:6px;
+    cursor:context-menu;display:flex;flex-direction:column;align-items:center;gap:4px;
+    box-shadow:0 3px 8px rgba(31,42,55,.10);
+  }
+  .gal-item:hover{border-color:var(--morado);}
+  .gal-item.seleccionado{border-color:var(--azul);background:var(--azul-claro);}
+  .gal-item img{width:100%;height:auto;border-radius:10px;display:block;pointer-events:none;}
+  .gal-item span{font-size:16.8px;font-weight:700;color:#4A5A6A;}
+
+  /* ====== VENTANAS ====== */
+  #ventanas{position:fixed;inset:0;pointer-events:none;}
+  .ventana{
+    position:absolute;pointer-events:auto;background:var(--papel);
+    border-radius:var(--radio);box-shadow:var(--sombra);
+    border:3px solid rgba(43,108,176,.30);
+    display:flex;flex-direction:column;min-width:320px;max-width:92vw;
+    max-height:82vh;overflow:hidden;
+  }
+  .ventana:focus{outline:none;}
+  .ventana.activa{border-color:var(--azul);}
+  .barra{
+    display:flex;align-items:center;gap:10px;padding:10px 12px;
+    background:linear-gradient(#EAF3FC,#D8E8F8);cursor:grab;user-select:none;
+  }
+  .barra:active{cursor:grabbing;}
+  .titulo{font-weight:800;font-size:22.8px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .btn-cerrar{
+    width:44px;height:44px;border-radius:12px;border:3px solid var(--rojo);
+    background:#fff;color:var(--rojo);font-size:28.8px;font-weight:900;cursor:pointer;line-height:1;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .btn-cerrar:hover{background:var(--rojo);color:#fff;}
+  .cuerpo{padding:14px;overflow:auto;}
+  .cuerpo .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center;}
+  .contenido-grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;
+    list-style:none;margin:0;padding:0;
+  }
+  .contenido-grid .icono{min-height:110px;}
+  .contenido-grid .icono img,.contenido-grid .icono svg{width:56px;height:56px;}
+  .vaciar{font-size:20.4px;color:#7A8794;background:var(--gris);border-radius:12px;padding:14px;text-align:center;}
+
+  .btn{
+    border:3px solid var(--azul);background:#fff;color:var(--azul);
+    font-size:20.4px;font-weight:800;border-radius:14px;padding:10px 16px;cursor:pointer;
+  }
+  .btn:hover{background:var(--azul);color:#fff;}
+  .btn[disabled]{opacity:.45;cursor:not-allowed;border-color:#9AA7B4;color:#7A8794;background:#F2F5F8;}
+  .btn.verde{border-color:var(--verde);color:var(--verde);}
+  .btn.verde:hover{background:var(--verde);color:#fff;}
+  .btn.morado{border-color:var(--morado);color:var(--morado);}
+  .btn.morado:hover{background:var(--morado);color:#fff;}
+  .btn.rojo{border-color:var(--rojo);color:var(--rojo);}
+  .btn.rojo:hover{background:var(--rojo);color:#fff;}
+
+  .visor-img{display:block;margin:0 auto;max-width:100%;width:420px;border-radius:14px;border:3px solid var(--gris);}
+
+  textarea{width:100%;min-height:180px;font-size:22.8px;font-family:var(--fuente);padding:12px;border-radius:12px;border:3px solid #C7D5E4;resize:vertical;}
+  input[type=text]{font-size:22.8px;font-family:var(--fuente);padding:10px 12px;border-radius:12px;border:3px solid #C7D5E4;width:240px;max-width:100%;}
+  label.campo{font-weight:700;display:block;margin:10px 0 4px;}
+
+  /* ====== EJERCICIOS ====== */
+  .progreso-wrap{background:var(--gris);border-radius:14px;padding:10px;margin-bottom:12px;}
+  .barra-progreso{height:26px;background:#fff;border-radius:10px;overflow:hidden;border:2px solid #C7D5E4;}
+  .barra-progreso i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--verde),#7ED39B);transition:width .3s ease;}
+  .progreso-txt{font-size:19.2px;font-weight:800;margin-top:6px;color:#3E4C5A;}
+  ol.ejercicios{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
+  li.ejercicio{
+    display:flex;gap:10px;align-items:flex-start;background:#fff;border:3px solid var(--gris);
+    border-radius:14px;padding:12px;font-size:20.4px;
+  }
+  li.ejercicio .marca{font-size:26.4px;line-height:1;width:30px;flex:none;text-align:center;}
+  li.ejercicio.hecho{border-color:var(--verde);background:#EFFBF3;}
+  li.ejercicio.actual{border-color:var(--amarillo);background:#FFFCEB;box-shadow:0 0 0 4px rgba(255,212,71,.35);}
+  li.ejercicio .num{font-weight:900;color:var(--azul);}
+
+  /* ====== BARRA DE TAREAS ====== */
+  #barraTareas{
+    position:fixed;left:0;right:0;bottom:0;height:78px;display:flex;align-items:center;gap:10px;
+    padding:10px 16px;background:linear-gradient(#FFFFFF,#E8F0F8);
+    border-top:4px solid rgba(43,108,176,.35);box-shadow:0 -6px 18px rgba(31,42,55,.10);
+    z-index:500;
+  }
+  #barraTareas .btn{font-size:21.6px;padding:12px 18px;}
+  .reloj{margin-left:auto;background:var(--azul);color:#fff;border-radius:14px;padding:12px 18px;font-size:24px;font-weight:800;}
+  .aviso-mac{font-size:16.8px;color:#5A6878;max-width:260px;line-height:1.2;}
+
+  /* ====== MENÚ (contextual / inicio) ====== */
+  #menu{
+    position:fixed;z-index:900;background:#fff;border:3px solid var(--azul);
+    border-radius:14px;box-shadow:var(--sombra);padding:8px;min-width:250px;max-width:min(340px,92vw);
+  }
+  .menu-titulo{font-size:16.8px;font-weight:800;color:#7A8794;padding:4px 10px 8px;text-transform:uppercase;letter-spacing:.5px;}
+  .menu-item{
+    display:block;width:100%;text-align:left;background:#fff;border:0;border-radius:10px;
+    padding:12px 12px;font-size:21.6px;font-weight:700;cursor:pointer;color:var(--tinta);
+  }
+  .menu-item:hover,.menu-item:focus{background:var(--azul-claro);outline:none;}
+  .menu-item[disabled]{opacity:.45;cursor:not-allowed;}
+  .menu-item[disabled]:hover{background:#fff;}
+
+  /* ====== AVISOS (toast) ====== */
+  #avisos{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:950;display:flex;flex-direction:column;gap:10px;align-items:center;pointer-events:none;width:min(620px,92vw);}
+  .aviso{
+    background:#12324F;color:#fff;border-radius:14px;padding:14px 20px;font-size:21.6px;font-weight:700;
+    box-shadow:var(--sombra);border:3px solid var(--amarillo);opacity:0;transform:translateY(10px);
+    transition:opacity .2s ease, transform .2s ease;text-align:center;
+  }
+  .aviso.mostrar{opacity:1;transform:translateY(0);}
+  .aviso.exito{border-color:var(--verde);}
+  .aviso.error{border-color:var(--rojo);}
+
+  /* ====== MODAL AYUDA / EXPLORAR ====== */
+  .etiqueta-explorar{
+    position:fixed;z-index:400;background:var(--amarillo);color:#3A2C00;border:3px solid #B98A00;
+    border-radius:12px;padding:8px 12px;font-size:18px;font-weight:800;box-shadow:var(--sombra);
+    pointer-events:none;display:none;
+  }
+  body.explorando .etiqueta-explorar{display:block;}
+  body.explorando #zonaIconos{outline:6px solid var(--amarillo);outline-offset:4px;}
+  body.explorando #galeria{outline:6px solid var(--morado);outline-offset:4px;}
+  body.explorando #barraTareas{outline:6px solid var(--azul);outline-offset:-2px;}
+  #panelExplorar{
+    position:fixed;left:18px;bottom:96px;z-index:420;max-width:420px;background:#FFFCEB;
+    border:4px solid var(--amarillo);border-radius:var(--radio);padding:14px;box-shadow:var(--sombra);display:none;
+  }
+  body.explorando #panelExplorar{display:block;}
+  #panelExplorar h3{margin:0 0 8px;font-size:22.8px;color:#7A5B00;}
+  #panelExplorar ul{margin:0;padding-left:20px;font-size:19.2px;line-height:1.5;}
+
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+  :focus-visible{outline:4px solid var(--morado);outline-offset:2px;}
+
+/* Mouse guía: el punto señala el lugar exacto del clic. */
+body.mouse-guia-activo, body.mouse-guia-activo * {cursor:none!important}
+#mouseGuia{position:fixed;left:0;top:0;z-index:100000;pointer-events:none;display:none;font-family:inherit}
+#mouseGuia .punto{position:absolute;width:10px;height:10px;left:-5px;top:-5px;border:2px solid #fff;border-radius:50%;background:#172b4d;box-shadow:0 0 0 2px #172b4d}
+#mouseGuia .modelo{position:absolute;left:14px;top:14px;width:70px;filter:drop-shadow(0 3px 3px #0005)}
+#mouseGuia.invertir-x .modelo{left:-84px} #mouseGuia.invertir-y .modelo{top:-104px}
+#mouseGuia .boton{fill:#e5eaf0;stroke:#334155;stroke-width:2}
+#mouseGuia[data-pide="izquierdo"] .izquierdo,#mouseGuia[data-pide="doble"] .izquierdo{fill:#facc15}
+#mouseGuia[data-pide="derecho"] .derecho{fill:#facc15}
+#mouseGuia[data-pulsa="izquierdo"] .izquierdo,#mouseGuia[data-pulsa="derecho"] .derecho{fill:#4ade80;stroke:#166534;stroke-width:4}
+#guiaMouseTexto{position:fixed;left:16px;bottom:105px;max-width:min(390px,85vw);padding:10px 16px;border:2px solid #cbd5e1;border-radius:16px;background:#fffefa;color:#172b4d;font-size:20.4px;font-weight:800;z-index:960;pointer-events:none;box-shadow:0 3px 12px #0001}
+
+
+#estadoNivel{position:relative;z-index:940;flex-shrink:0;margin:0 0 14px;padding:12px 16px;border:1px solid #bfd2e5;border-left:4px solid var(--azul);border-radius:10px;background:#fff;color:#293548;font-size:19.2px;line-height:1.5;box-shadow:0 2px 8px #243b5310}
+#estadoNivel strong:first-child{color:var(--azul)}
+#zonaIconos #iconos{flex:1;min-height:0;overflow:auto;align-content:start}
+#pasoActualTexto{display:block;margin-top:3px}
+#fiestaNivel{position:fixed;inset:0;background:#14284488;z-index:200000;display:grid;place-items:center}
+.fiesta-tarjeta{background:#fffbea;border:2px solid #facc15;border-radius:16px;padding:20px;text-align:center;color:#1e3a5f;box-shadow:0 20px 80px #0004;max-width:90vw}
+.fiesta-tarjeta h2{font-size:31.2px;margin:8px}.fiesta-tarjeta p{font-size:20.4px}
+
+/* Misma familia visual de Aula OS; actividades de primero sin cambios. */
+:root{--fuente:"Segoe UI",Arial,sans-serif;--radio:10px;--sombra:0 16px 48px #18375b33;--azul:#2563b4}
+body{font-size:19.2px;background:#dfeafb}
+.aula-fondo{position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse at 70% 65%,#91c5fc 0,transparent 48%),linear-gradient(125deg,#e9f3ff,#acccf4 60%,#b4a9eb)}
+.aula-fondo:after{content:'';position:absolute;width:57vw;height:65vh;left:32%;top:18%;border-radius:48% 35% 55% 30%;border:60px solid #1676df33;transform:rotate(-30deg);box-shadow:inset 24px 20px 40px #fff4,20px 25px 50px #317fe022}
+.aula-marca{position:fixed;left:20px;right:20px;top:16px;display:flex;align-items:center;justify-content:space-between;font-size:19.2px}.aula-marca strong>span{font-weight:400;color:#47617b}.aula-marca>span{font-size:13.2px;color:#45607c;letter-spacing:.6px}
+#escritorio{inset:148px 18px 84px;padding:0;grid-template-columns:minmax(0,1fr) 270px;gap:22px}
+#zonaIconos{border:0;border-radius:0;background:transparent;padding:6px;overflow:hidden}
+#zonaIconos h1{font-size:21.6px;color:#294b70;font-weight:600}
+#zonaIconos p.ayuda-mini{font-size:16.8px;margin:6px 0 18px}
+#iconos{grid-template-columns:repeat(auto-fill,110px);gap:12px}
+.icono{min-height:110px;border:1px solid transparent;background:transparent;border-radius:6px;padding:8px 4px;gap:6px;box-shadow:none}
+.icono:hover{transform:none;background:#ffffff70;border-color:#fff}
+.icono img,.icono svg{width:56px;height:56px}.icono .nombre{font-size:18px;font-weight:500;line-height:1.3}.icono .mini-tag{font-size:13.2px;background:#ffffff55;padding:2px 6px}
+.icono.seleccionado{background:#e2efffa6;border-color:#6ca6e2;box-shadow:0 0 0 1px #fff9}
+#galeria{background:#f7faffd9;border:1px solid #ffffffcc;padding:14px;border-radius:10px;box-shadow:0 8px 25px #23436a15}
+#galeria h2{font-size:19.2px;color:#294b70;font-weight:600;margin-bottom:6px}#galeria p{font-size:15.6px;line-height:1.4}
+#galeriaGrid{gap:9px}.gal-item{padding:7px;border:1px solid #dce5f0;border-radius:7px;box-shadow:none;gap:5px}.gal-item span{font-size:15.6px;font-weight:500}.gal-item img{max-height:100px;width:100%;object-fit:contain;border-radius:5px}
+#estadoNivel{position:fixed;top:53px;left:20px;right:20px;margin:0;padding:12px 16px;min-height:74px;background:#fffffff0;border:1px solid white;border-left:4px solid #2563b4;border-radius:10px;z-index:940;font-size:18px;line-height:1.5;box-shadow:0 5px 20px #23426a12}
+.ventana{background:#f6f8fc;border:1px solid #dce7f5;border-radius:10px;max-height:calc(100vh - 245px)}.ventana.activa{border-color:#a9c8ec}.barra{padding:0 0 0 14px;min-height:42px;background:#eef3fa;gap:8px}.titulo{font-size:18px;font-weight:600;margin:0}.btn-cerrar{width:44px;height:42px;border:0;border-radius:0;background:transparent;font-size:22.8px;font-weight:400;color:#34465c}.btn-cerrar:hover{background:#dc3545;color:white}.cuerpo{padding:14px}
+.btn{font-size:18px;font-weight:500;border:1px solid #bfd0e4;border-radius:6px;padding:8px 12px;background:white;color:#294b70}
+.btn.verde,.btn.morado,.btn.rojo{border-width:1px}
+textarea,input[type=text]{font-size:19.2px;border-width:1px;border-radius:6px}
+.contenido-grid .icono{min-height:105px;background:#fff;border:1px solid transparent}.contenido-grid .icono:hover{border-color:#bfd3e9}.contenido-grid .icono.seleccionado{background:#e2efff;border-color:#6ca6e2}
+#barraTareas{height:66px;justify-content:center;gap:5px;padding:5px 100px;background:#f2f6fbe8;backdrop-filter:blur(20px);border-top:1px solid white;box-shadow:0 -3px 15px #24456b0d;z-index:970}
+#barraTareas .btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:transparent;border:1px solid transparent;border-radius:6px;min-width:68px;height:56px;font-size:13.2px;color:#2b4059;padding:4px 8px}
+#barraTareas .btn:hover{background:#fff9;border-color:#fff}#barraTareas .btn[aria-pressed=true]{background:#e0edff8a;border-bottom:2px solid #3878c0}
+.icono-ui{display:inline-flex;flex-shrink:0}.icono-ui svg{width:26px;height:26px;display:block}
+#barraTareas .aviso-mac{display:none}.reloj{position:absolute;right:18px;bottom:12px;margin:0;background:transparent;color:#294b70;border-radius:0;font-size:15.6px;font-weight:400;padding:8px 0}
+#menu{border:1px solid #d4e0ed;background:#fcfdfff5;border-radius:8px;padding:5px;box-shadow:0 8px 30px #18375b33;z-index:980}.menu-item{font-size:18px;font-weight:400;padding:10px;border-radius:5px}.menu-titulo{font-size:14.4px;padding:8px 10px}
+#menu.inicio-aula{width:410px;max-width:92vw;padding:20px;background:#f3f7fff5;backdrop-filter:blur(20px);display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+#menu.inicio-aula[hidden]{display:none}#menu.inicio-aula .menu-titulo{grid-column:1/-1;color:#294b70;font-size:19.2px;text-transform:none;letter-spacing:0;padding:0 0 12px}
+#menu.inicio-aula .menu-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;text-align:center;font-size:15.6px;padding:12px 4px;min-height:87px;background:transparent}
+#menu.inicio-aula .menu-item:hover,#menu.inicio-aula .menu-item:focus{background:#ffffffa0}#menu.inicio-aula .icono-ui svg{width:34px;height:34px}
+#guiaMouseTexto{bottom:81px;font-size:16.8px;padding:8px 12px;border-width:1px;border-radius:8px}
+#avisos{bottom:82px;left:auto;right:18px;transform:none;width:min(390px,90vw);align-items:end}.aviso{font-size:16.8px;font-weight:500;padding:10px 14px;border-width:1px;border-radius:8px}
+#panelExplorar{bottom:82px;font-size:16.8px}.fiesta-tarjeta{border-radius:12px}.fiesta-tarjeta .btn{font-size:18px}
+.progreso-txt{font-size:16.8px}.barra-progreso{height:14px;border-width:1px}li.ejercicio{font-size:18px;border-width:1px;padding:10px;border-radius:8px}li.ejercicio .marca{font-size:21.6px}
+@media(max-width:850px){#barraTareas{padding:5px 8px;justify-content:flex-start;overflow-x:auto}.reloj{display:none}#barraTareas .btn{min-width:64px;padding:4px 6px}#escritorio{grid-template-columns:minmax(0,1fr) 230px;gap:12px}}
+@media(max-width:580px){.aula-marca>span{display:none}#escritorio{grid-template-columns:minmax(0,1fr) 180px;gap:8px;left:8px;right:8px}#estadoNivel{left:8px;right:8px;font-size:16.8px}#galeria{padding:9px}#galeriaGrid{gap:6px}#iconos{grid-template-columns:repeat(auto-fill,92px)}.icono .nombre{font-size:16.8px}}
+</style>
+</head>
+<body>
+<div class="aula-fondo" aria-hidden="true"></div><header class="aula-marca"><strong>Aula OS <span> / Mi primera compu</span></strong><span>PRIMERO DE PRIMARIA</span></header>
+
+<main id="escritorio" aria-label="Escritorio de Mi Primera Compu">
+  <section id="zonaIconos" aria-label="Escritorio">
+    <h1>Escritorio</h1>
+    <p class="ayuda-mini">Un clic selecciona. Doble clic abre. Botón derecho abre el menú.</p>
+    <ul id="iconos"></ul>
+  </section>
+
+  <aside id="galeria" aria-label="Galería de imágenes de ejemplo">
+    <h2>Galería de imágenes</h2>
+    <p>Haz <strong>botón derecho</strong> sobre una imagen para copiarla, pegarla o descargarla.</p>
+    <div id="galeriaGrid"></div>
+  </aside>
+</main>
+
+<div id="ventanas" aria-live="polite"></div>
+
+<nav id="barraTareas" aria-label="Barra de tareas">
+  <button class="btn" id="btnInicio" aria-haspopup="menu" aria-expanded="false">Inicio</button>
+  <button class="btn verde" id="btnEjercicios">Ejercicios</button>
+  <button class="btn morado" id="btnBloc">Bloc</button>
+  <button class="btn" id="btnAyuda">Ayuda</button>
+  <button class="btn" id="btnExplorar" aria-pressed="false">Modo explorar</button>
+  <button class="btn rojo" id="btnReiniciar">Reiniciar</button>
+  <span class="aviso-mac" role="note">En Mac: botón derecho = <strong>Ctrl + clic</strong> (o clic con dos dedos).</span>
+  <span class="reloj" id="reloj" aria-label="Reloj">--:--</span>
+</nav>
+
+<div id="panelExplorar" role="region" aria-label="Guía del modo explorar">
+  <h3>Modo explorar</h3>
+  <ul>
+    <li><strong>Escritorio (izquierda):</strong> aquí están tus carpetas y archivos.</li>
+    <li><strong>Galería (derecha):</strong> imágenes de ejemplo con menú de botón derecho.</li>
+    <li><strong>Barra de tareas (abajo):</strong> botones para abrir programas.</li>
+    <li>En las ventanas, la <strong>X</strong> de la esquina cierra la ventana.</li>
+    <li>Todo lo que "borra" o "pega" es de mentira: no toca archivos reales.</li>
+  </ul>
+</div>
+
+<span class="etiqueta-explorar" data-pos="escritorio">1. Tu escritorio</span>
+<span class="etiqueta-explorar" data-pos="galeria">2. Galería de imágenes</span>
+<span class="etiqueta-explorar" data-pos="tareas">3. Barra de tareas</span>
+
+<div id="avisos" aria-live="assertive" aria-atomic="true"></div>
+
+<div id="menu" role="menu" hidden aria-label="Menú"></div>
+
+<noscript><p style="padding:20px">Este juego necesita JavaScript activado para funcionar.</p></noscript>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =========================================================
+     Utilidades
+     ========================================================= */
+  var $ = function(sel, raiz){ return (raiz||document).querySelector(sel); };
+  var $$ = function(sel, raiz){ return Array.prototype.slice.call((raiz||document).querySelectorAll(sel)); };
+
+  var contadorId = 1;
+  function nuevoId(){ return "id" + (contadorId++); }
+
+  function datosUrl(svg){
+    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  }
+
+  function slug(txt){
+    return String(txt).replace(/[^\wáéíóúñÁÉÍÓÚÑ\- ]/g,"").trim().replace(/\s+/g,"-").toLowerCase();
+  }
+
+  /* =========================================================
+     Ilustraciones SVG propias (sencillas)
+     ========================================================= */
+  function svgSol(){
+    var rayos = "";
+    for(var i=0;i<8;i++){
+      var a = i*Math.PI/4;
+      var x1 = (60+Math.cos(a)*34).toFixed(1), y1 = (60+Math.sin(a)*34).toFixed(1);
+      var x2 = (60+Math.cos(a)*46).toFixed(1), y2 = (60+Math.sin(a)*46).toFixed(1);
+      rayos += '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#FFA000" stroke-width="6" stroke-linecap="round"/>';
+    }
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Sol sonriente">'+
+      '<rect width="120" height="120" rx="18" fill="#FFF8E1"/>'+
+      '<circle cx="60" cy="60" r="28" fill="#FFC93C" stroke="#F59E00" stroke-width="4"/>'+
+      rayos +
+      '<circle cx="50" cy="54" r="4" fill="#7A4B00"/><circle cx="70" cy="54" r="4" fill="#7A4B00"/>'+
+      '<path d="M48 70 Q60 82 72 70" fill="none" stroke="#7A4B00" stroke-width="4" stroke-linecap="round"/></svg>';
+  }
+
+  function svgGato(){
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Cara de gato">'+
+      '<rect width="120" height="120" rx="18" fill="#EEF7FF"/>'+
+      '<path d="M34 48 L28 18 L54 36 Z" fill="#9AA7B4" stroke="#5C6B7A" stroke-width="4" stroke-linejoin="round"/>'+
+      '<path d="M86 48 L92 18 L66 36 Z" fill="#9AA7B4" stroke="#5C6B7A" stroke-width="4" stroke-linejoin="round"/>'+
+      '<ellipse cx="60" cy="68" rx="35" ry="30" fill="#B9C4CF" stroke="#5C6B7A" stroke-width="4"/>'+
+      '<circle cx="48" cy="62" r="5" fill="#2B3A48"/><circle cx="72" cy="62" r="5" fill="#2B3A48"/>'+
+      '<path d="M60 74 l-6 6 h12 z" fill="#F49AA8"/>'+
+      '<path d="M55 86 q5 5 10 0" fill="none" stroke="#2B3A48" stroke-width="3.5" stroke-linecap="round"/>'+
+      '<line x1="20" y1="72" x2="40" y2="70" stroke="#5C6B7A" stroke-width="3" stroke-linecap="round"/>'+
+      '<line x1="20" y1="84" x2="40" y2="80" stroke="#5C6B7A" stroke-width="3" stroke-linecap="round"/>'+
+      '<line x1="100" y1="72" x2="80" y2="70" stroke="#5C6B7A" stroke-width="3" stroke-linecap="round"/>'+
+      '<line x1="100" y1="84" x2="80" y2="80" stroke="#5C6B7A" stroke-width="3" stroke-linecap="round"/></svg>';
+  }
+
+  function svgCasa(){
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Casa">'+
+      '<rect width="120" height="120" rx="18" fill="#EAF7EA"/>'+
+      '<circle cx="98" cy="26" r="11" fill="#FFD447"/>'+
+      '<rect x="34" y="56" width="52" height="44" fill="#FFF3D6" stroke="#B98A3A" stroke-width="4"/>'+
+      '<path d="M26 58 L60 26 L94 58 Z" fill="#E36B5B" stroke="#B14A3C" stroke-width="4" stroke-linejoin="round"/>'+
+      '<rect x="52" y="76" width="16" height="24" fill="#7EC4E8" stroke="#4A93BC" stroke-width="4"/>'+
+      '<rect x="38" y="66" width="12" height="12" fill="#BFE3FF" stroke="#4A93BC" stroke-width="3"/>'+
+      '<rect x="70" y="66" width="12" height="12" fill="#BFE3FF" stroke="#4A93BC" stroke-width="3"/></svg>';
+  }
+
+  function svgEstrella(){
+    var pts = [], cx=60, cy=62, R=40, r=16;
+    for(var i=0;i<10;i++){
+      var rad = (i%2===0)?R:r;
+      var a = -Math.PI/2 + i*Math.PI/5;
+      pts.push((cx+Math.cos(a)*rad).toFixed(1)+","+(cy+Math.sin(a)*rad).toFixed(1));
+    }
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Estrella">'+
+      '<rect width="120" height="120" rx="18" fill="#F3EEFF"/>'+
+      '<polygon points="'+pts.join(" ")+'" fill="#FFD447" stroke="#E0A800" stroke-width="4" stroke-linejoin="round"/>'+
+      '<circle cx="60" cy="52" r="3" fill="#8A6A00"/><circle cx="60" cy="66" r="3" fill="#8A6A00"/>'+
+      '<path d="M52 74 q8 7 16 0" fill="none" stroke="#8A6A00" stroke-width="3.5" stroke-linecap="round"/></svg>';
+  }
+
+  function svgFlor(){
+    var pet="";
+    for(var i=0;i<5;i++){
+      var a=-Math.PI/2 + i*2*Math.PI/5;
+      pet += '<circle cx="'+(60+Math.cos(a)*20).toFixed(1)+'" cy="'+(46+Math.sin(a)*20).toFixed(1)+'" r="15" fill="#F49AA8" stroke="#D86677" stroke-width="3"/>';
+    }
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Flor">'+
+      '<rect width="120" height="120" rx="18" fill="#EAF7EA"/>'+
+      '<line x1="60" y1="66" x2="60" y2="108" stroke="#3FA96B" stroke-width="6" stroke-linecap="round"/>'+
+      '<ellipse cx="42" cy="90" rx="14" ry="8" fill="#7ED39B" stroke="#3FA96B" stroke-width="3"/>'+
+      '<ellipse cx="78" cy="96" rx="14" ry="8" fill="#7ED39B" stroke="#3FA96B" stroke-width="3"/>'+
+      pet +
+      '<circle cx="60" cy="46" r="13" fill="#FFD447" stroke="#E0A800" stroke-width="3"/></svg>';
+  }
+
+  function svgPez(){
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Pez">'+
+      '<rect width="120" height="120" rx="18" fill="#E4F7FF"/>'+
+      '<circle cx="24" cy="26" r="7" fill="#BFE9FF"/><circle cx="40" cy="18" r="4" fill="#BFE9FF"/>'+
+      '<path d="M84 60 L106 40 L106 80 Z" fill="#F5A65B" stroke="#C97A2E" stroke-width="4" stroke-linejoin="round"/>'+
+      '<ellipse cx="58" cy="60" rx="36" ry="24" fill="#F5A65B" stroke="#C97A2E" stroke-width="4"/>'+
+      '<path d="M50 40 q8 -14 20 -4" fill="#FFC93C" stroke="#C97A2E" stroke-width="3"/>'+
+      '<circle cx="38" cy="55" r="5" fill="#2B3A48"/>'+
+      '<path d="M30 68 q6 5 12 1" fill="none" stroke="#2B3A48" stroke-width="3" stroke-linecap="round"/></svg>';
+  }
+
+  var IMAGENES = [
+    { id:"sol",      nombre:"Sol",      svg:svgSol() },
+    { id:"gato",     nombre:"Gato",     svg:svgGato() },
+    { id:"casa",     nombre:"Casa",     svg:svgCasa() },
+    { id:"estrella", nombre:"Estrella", svg:svgEstrella() },
+    { id:"flor",     nombre:"Flor",     svg:svgFlor() },
+    { id:"pez",      nombre:"Pez",      svg:svgPez() }
+  ];
+  function buscarImagen(imgId){
+    for(var i=0;i<IMAGENES.length;i++){ if(IMAGENES[i].id===imgId) return IMAGENES[i]; }
+    return null;
+  }
+
+  /* =========================================================
+     Iconos vectoriales para carpetas y documentos
+     ========================================================= */
+  var ICONO_CARPETA = '<svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">'+
+    '<path d="M14 34 h34 l10 12 h48 a8 8 0 0 1 8 8 v40 a8 8 0 0 1-8 8 H14 a8 8 0 0 1-8-8 V42 a8 8 0 0 1 8-8 z" '+
+    'fill="#FFD447" stroke="#E0A800" stroke-width="5" stroke-linejoin="round"/></svg>';
+
+  var ICONO_TEXTO = '<svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">'+
+    '<rect x="26" y="14" width="68" height="92" rx="8" fill="#FFFFFF" stroke="#8E6BC9" stroke-width="5"/>'+
+    '<line x1="38" y1="38" x2="82" y2="38" stroke="#8E6BC9" stroke-width="5" stroke-linecap="round"/>'+
+    '<line x1="38" y1="56" x2="82" y2="56" stroke="#B9A3E0" stroke-width="5" stroke-linecap="round"/>'+
+    '<line x1="38" y1="74" x2="66" y2="74" stroke="#B9A3E0" stroke-width="5" stroke-linecap="round"/></svg>';
+
+  var ICONO_PAPELERA = '<svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">'+
+    '<rect x="34" y="40" width="52" height="62" rx="8" fill="#DCE6F0" stroke="#5C6B7A" stroke-width="5"/>'+
+    '<rect x="26" y="28" width="68" height="12" rx="6" fill="#9AA7B4" stroke="#5C6B7A" stroke-width="4"/>'+
+    '<line x1="50" y1="54" x2="50" y2="90" stroke="#5C6B7A" stroke-width="4" stroke-linecap="round"/>'+
+    '<line x1="70" y1="54" x2="70" y2="90" stroke="#5C6B7A" stroke-width="4" stroke-linecap="round"/></svg>';
+
+  /* =========================================================
+     Estado del sistema
+     ========================================================= */
+  var estado = {
+    escritorio: [],
+    idSel: null,
+    galeriaSel: null,
+    portapapeles: null,
+    flags: {},
+    ventanas: {},
+    zTop: 20,
+    explorando: false
+  };
+
+  var ids = { dibujos:null, descargas:null, documentos:null };
+  var nivelActual = 0;
+  var nivelesHechos = [];
+
+  function carpeta(nombre, hijos){
+    return { id:nuevoId(), nombre:nombre, tipo:"carpeta", hijos:hijos||[] };
+  }
+  function texto(nombre, contenido){
+    return { id:nuevoId(), nombre:nombre, tipo:"texto", contenido:contenido||"" };
+  }
+  function imagen(nombre, imgId){
+    return { id:nuevoId(), nombre:nombre, tipo:"imagen", img:imgId };
+  }
+
+  function iniciarSistema(){
+    contadorId = 1;
+    nivelActual = 0; nivelesHechos = [];
+    var fiestaAnterior = document.getElementById("fiestaNivel"); if(fiestaAnterior) fiestaAnterior.remove();
+    estado.escritorio = [];
+    estado.idSel = null;
+    estado.galeriaSel = null;
+    estado.portapapeles = null;
+    estado.flags = {};
+    estado.ventanas = {};
+    estado.zTop = 20;
+    estado.explorando = false;
+    document.body.classList.remove("explorando");
+
+    var dibujos = carpeta("Imágenes", []);
+    var descargas = carpeta("Descargas del juego", []);
+    var documentos = carpeta("Documentos", [dibujos, descargas]);
+    ids.documentos = documentos.id;
+    var nota = texto("Bienvenida.txt",
+      "¡Hola! Soy tu computadora.\n\nAbre Documentos con doble clic. Dentro están Imágenes y Descargas del juego.\nUsa el botón derecho sobre las imágenes de la galería.\n\nTodo lo que borres es de mentira: tus archivos están a salvo.");
+
+    estado.escritorio.push(documentos, nota);
+    ids.dibujos = dibujos.id;
+    ids.descargas = descargas.id;
+
+    var ini = $(".ayuda-mini"); if(ini) ini.textContent = "Un clic selecciona. Doble clic abre. Botón derecho abre el menú.";
+    var galP = $("#galeria p"); if(galP) galP.innerHTML = "Haz <strong>botón derecho</strong> sobre una imagen para copiarla, pegarla o descargarla.";
+  }
+
+  /* =========================================================
+     Avisos (toast)
+     ========================================================= */
+  function aviso(msg, tipo){
+    var caja = $("#avisos");
+    var el = document.createElement("div");
+    el.className = "aviso " + (tipo||"");
+    el.textContent = msg;
+    caja.appendChild(el);
+    requestAnimationFrame(function(){ el.classList.add("mostrar"); });
+    setTimeout(function(){
+      el.classList.remove("mostrar");
+      setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 250);
+    }, 3200);
+  }
+
+  /* =========================================================
+     Menú (contextual y de inicio)
+     ========================================================= */
+  var menuEl = $("#menu");
+  var menuAbierto = false;
+  var focoAntesMenu = null;
+
+  function cerrarMenu(){
+    if(!menuAbierto) return;
+    menuEl.hidden = true;
+    menuEl.innerHTML = "";
+    menuAbierto = false;
+    $("#btnInicio").setAttribute("aria-expanded","false");
+    if(focoAntesMenu && document.contains(focoAntesMenu)){ try{ focoAntesMenu.focus(); }catch(e){} }
+    focoAntesMenu = null;
+  }
+
+  function mostrarMenu(x, y, titulo, items){
+    focoAntesMenu = document.activeElement;
+    menuEl.classList.remove("inicio-aula");
+    menuEl.innerHTML = "";
+    if(titulo){
+      var t = document.createElement("div");
+      t.className = "menu-titulo";
+      t.textContent = titulo;
+      menuEl.appendChild(t);
+    }
+    items.forEach(function(it){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "menu-item";
+      b.setAttribute("role","menuitem");
+      b.textContent = it.label;
+      if(it.disabled){
+        b.disabled = true;
+      }else{
+        b.addEventListener("click", function(ev){
+          ev.stopPropagation();
+          cerrarMenu();
+          if(it.action) it.action();
+        });
+      }
+      menuEl.appendChild(b);
+    });
+    menuEl.hidden = false;
+    menuEl.style.visibility = "hidden";
+    menuAbierto = true;
+    var ancho = menuEl.offsetWidth, alto = menuEl.offsetHeight;
+    var nx = Math.max(8, Math.min(x, window.innerWidth - ancho - 8));
+    var ny = Math.max(8, Math.min(y, window.innerHeight - alto - 8));
+    menuEl.style.left = nx + "px";
+    menuEl.style.top = ny + "px";
+    menuEl.style.visibility = "visible";
+    var primero = menuEl.querySelector("button:not([disabled])");
+    if(primero) primero.focus();
+  }
+
+  var ICONOS_UI={
+    inicio:'<path d="M2 2h9v9H2zm11 0h9v9h-9zM2 13h9v9H2zm11 0h9v9h-9z" fill="#1971df"/>',
+    carpeta:'<path d="M2 6h8l3 3h9v12H2z" fill="#efb52c"/><path d="M2 11h20v10H2z" fill="#ffd56a"/>',
+    bloc:'<rect x="5" y="2" width="15" height="20" rx="2" fill="#fff" stroke="#7599c4"/><path d="M8 7h9M8 11h9M8 15h9M8 19h6" stroke="#5689c5"/>',
+    ejercicios:'<rect x="4" y="3" width="16" height="19" rx="2" fill="#e7f2ed" stroke="#3d8d6c"/><path d="m7 9 2 2 3-4m-5 9 2 2 3-4M14 9h3m-3 7h3" fill="none" stroke="#3d8d6c" stroke-width="1.5"/>',
+    ayuda:'<circle cx="12" cy="12" r="10" fill="#6d91d4"/><path d="M9 8q1-3 4-2t2 5l-3 2v2m0 2v2" fill="none" stroke="white" stroke-width="2"/>',
+    explorar:'<circle cx="10" cy="10" r="6" fill="#e3daf4" stroke="#8e6bc9" stroke-width="2"/><path d="m15 15 6 6" stroke="#8e6bc9" stroke-width="3"/>',
+    reiniciar:'<path d="M5 7a8 8 0 1 1-1 9M5 2v6h6" fill="none" stroke="#c16757" stroke-width="2" stroke-linecap="round"/>',
+    mouse:'<rect x="5" y="2" width="14" height="21" rx="7" fill="#d9e4f1" stroke="#5c799c"/><path d="M12 2v9M5 11h14" stroke="#5c799c"/><rect x="11" y="5" width="2" height="4" rx="1" fill="#5c799c"/>',
+    imagenes:'<rect x="2" y="3" width="20" height="18" rx="2" fill="#719ed1"/><circle cx="17" cy="8" r="2.5" fill="#ffe7a7"/><path d="m4 18 5-8 5 5 3-4 4 7z" fill="#cce7d6"/>'
+  };
+  function iconoUI(nombre){return '<span class="icono-ui" aria-hidden="true"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">'+(ICONOS_UI[nombre]||ICONOS_UI.carpeta)+'</svg></span>';}
+  function vestirBoton(b,nombre,texto){b.innerHTML=iconoUI(nombre)+'<span>'+texto+'</span>';}
+  function vestirBarra(){
+    [['btnInicio','inicio','Inicio'],['btnEjercicios','ejercicios','Ejercicios'],['btnBloc','bloc','Bloc'],['btnAyuda','ayuda','Ayuda'],['btnExplorar','explorar','Explorar'],['btnReiniciar','reiniciar','Reiniciar']].forEach(function(item){vestirBoton(document.getElementById(item[0]),item[1],item[2]);});
+  }
+  function abrirMenuInicio(){
+    var r = $("#btnInicio").getBoundingClientRect();
+    $("#btnInicio").setAttribute("aria-expanded","true");
+    mostrarMenu(r.left, r.top - 8, "Aula OS · Inicio", [
+      { label:"Documentos", action:function(){ abrirCarpeta(buscarItemPorId(ids.documentos)); } },
+      { label:"Ejercicios", action:abrirEjercicios },
+      { label:"Abrir Bloc de notas", action:abrirBloc },
+      { label:"Ver Ayuda", action:abrirAyuda },
+      { label:"Modo explorar (encender/apagar)", action:alternarExplorar },
+      { label:"Reiniciar el escritorio", action:reiniciar }
+    ]);
+    menuEl.classList.add("inicio-aula");menuEl.dataset.origen="inicio";
+    var nombres=['carpeta','ejercicios','bloc','ayuda','explorar','reiniciar'];
+    menuEl.querySelectorAll('.menu-item').forEach(function(b,i){vestirBoton(b,nombres[i],b.textContent.replace('Abrir ','').replace('Ver ','').replace(' (encender/apagar)','').replace('el escritorio',''));});
+    menuEl.style.left=Math.max(8,Math.min(r.left-60,innerWidth-menuEl.offsetWidth-8))+"px";
+    menuEl.style.top = Math.max(140, r.top - menuEl.offsetHeight - 10) + "px";
+  }
+
+  /* =========================================================
+     Escritorio — render de iconos
+     ========================================================= */
+  function crearBotonItem(item, contexto){
+    var li = document.createElement("button");
+    li.type = "button";
+    li.className = "icono";
+    li.dataset.itemId = item.id;
+    li.setAttribute("aria-label", item.nombre + " (" + etiquetaTipo(item) + "). Un clic selecciona, doble clic abre.");
+
+    var visual;
+    if(item.tipo === "carpeta"){ visual = ICONO_CARPETA; }
+    else if(item.tipo === "imagen"){
+      var img = buscarImagen(item.img);
+      visual = img ? '<img src="' + datosUrl(img.svg) + '" alt="" aria-hidden="true">' : ICONO_TEXTO;
+    }else{ visual = ICONO_TEXTO; }
+
+    li.innerHTML = visual + '<span class="nombre"></span><span class="mini-tag"></span>';
+    li.querySelector(".nombre").textContent = item.nombre;
+    li.querySelector(".mini-tag").textContent = etiquetaTipo(item);
+
+    if(contexto === "escritorio" && estado.idSel === item.id) li.classList.add("seleccionado");
+
+    li.addEventListener("click", function(ev){
+      ev.stopPropagation();
+      if(contexto === "escritorio"){
+        seleccionarItem(item.id);
+        estado.flags.selecciono = true;
+        if(item.id === ids.documentos && nivelActual === 0) estado.flags.seleccionoDibujos = true;
+      }else{
+        $$(".contenido-grid .icono", li.parentNode).forEach(function(o){ o.classList.remove("seleccionado"); });
+        li.classList.add("seleccionado");
+      }
+      revisarEjercicios();
+    });
+    li.addEventListener("dblclick", function(ev){
+      ev.stopPropagation();
+      abrirItem(item);
+    });
+    li.addEventListener("contextmenu", function(ev){
+      ev.preventDefault();
+      ev.stopPropagation();
+      menuDeItem(item, ev.clientX, ev.clientY);
+    });
+    return li;
+  }
+
+  function etiquetaTipo(item){
+    if(item.tipo === "carpeta") return "Carpeta";
+    if(item.tipo === "imagen") return "Imagen";
+    return "Texto";
+  }
+
+  function seleccionarItem(id){
+    estado.idSel = id;
+    $$("#iconos .icono").forEach(function(b){
+      b.classList.toggle("seleccionado", b.dataset.itemId === id);
+    });
+  }
+
+  function renderEscritorio(){
+    var cont = $("#iconos");
+    cont.innerHTML = "";
+    estado.escritorio.forEach(function(item){
+      cont.appendChild(crearBotonItem(item, "escritorio"));
+    });
+  }
+
+  function renderGaleria(){
+    var cont = $("#galeriaGrid");
+    cont.innerHTML = "";
+    IMAGENES.forEach(function(img){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "gal-item" + (estado.galeriaSel === img.id ? " seleccionado" : "");
+      b.setAttribute("aria-label","Imagen " + img.nombre + ". Botón derecho para el menú.");
+      b.dataset.imgId = img.id;
+      b.innerHTML = '<img src="' + datosUrl(img.svg) + '" alt="' + img.nombre + '"><span>' + img.nombre + '</span>';
+      b.addEventListener("click", function(){
+        estado.galeriaSel = img.id;
+        renderGaleria();
+      });
+      b.addEventListener("contextmenu", function(ev){
+        ev.preventDefault();
+        estado.galeriaSel = img.id;
+        renderGaleria();
+        menuDeImagenGaleria(img, ev.clientX, ev.clientY);
+      });
+      cont.appendChild(b);
+    });
+  }
+
+  /* =========================================================
+     Ventanas
+     ========================================================= */
+  var cascada = 0;
+  function crearVentana(opciones){
+    var id = nuevoId();
+    var v = document.createElement("section");
+    v.className = "ventana activa";
+    v.id = id;
+    v.dataset.tipo = opciones.tipo;
+    if(opciones.itemId) v.dataset.itemId = opciones.itemId;
+    v.setAttribute("role","dialog");
+    v.setAttribute("aria-label", opciones.titulo);
+    v.tabIndex = -1;
+
+    var ancho = opciones.ancho || 520;
+    var izq = Math.max(14, Math.min(120 + (cascada%6)*38, window.innerWidth - ancho - 20));
+    var top = 158 + (cascada%3)*20;
+    cascada++;
+    v.style.width = ancho + "px";
+    v.style.left = izq + "px";
+    v.style.top = top + "px";
+
+    var barra = document.createElement("header");
+    barra.className = "barra";
+    var tit = document.createElement("h2");
+    tit.className = "titulo";
+    tit.textContent = opciones.titulo;
+    var cerrar = document.createElement("button");
+    cerrar.type = "button";
+    cerrar.className = "btn-cerrar";
+    cerrar.textContent = "✕";
+    cerrar.setAttribute("aria-label","Cerrar ventana " + opciones.titulo);
+    cerrar.addEventListener("click", function(ev){
+      ev.stopPropagation();
+      cerrarVentana(id, true);
+    });
+    barra.appendChild(tit);
+    barra.appendChild(cerrar);
+
+    var cuerpo = document.createElement("div");
+    cuerpo.className = "cuerpo";
+
+    v.appendChild(barra);
+    v.appendChild(cuerpo);
+    v.addEventListener("pointerdown", function(){ enfocarVentana(id); });
+
+    hacerArrastrable(v, barra);
+
+    $("#ventanas").appendChild(v);
+    estado.ventanas[id] = { el:v, tipo:opciones.tipo, itemId:opciones.itemId||null, cerrarConX:false };
+    enfocarVentana(id);
+    cerrar.focus();
+    return { id:id, cuerpo:cuerpo, ventana:v, cerrar:cerrar };
+  }
+
+  function enfocarVentana(id){
+    estado.zTop += 1;
+    var info = estado.ventanas[id];
+    if(!info) return;
+    info.el.style.zIndex = estado.zTop;
+    Object.keys(estado.ventanas).forEach(function(k){
+      estado.ventanas[k].el.classList.toggle("activa", k===id);
+    });
+  }
+
+  function cerrarVentana(id, conX){
+    var info = estado.ventanas[id];
+    if(!info) return;
+    if(conX) info.cerrarConX = true;
+    if(conX && info.itemId === ids.documentos && nivelActual === 2) estado.flags.cerroConX = true;
+    if(info.el.parentNode) info.el.parentNode.removeChild(info.el);
+    delete estado.ventanas[id];
+    revisarEjercicios();
+  }
+
+  function hacerArrastrable(ventana, barra){
+    var arrastrando = false, offX = 0, offY = 0;
+    barra.addEventListener("pointerdown", function(ev){
+      if(ev.target.closest(".btn-cerrar")) return;
+      arrastrando = true;
+      var r = ventana.getBoundingClientRect();
+      offX = ev.clientX - r.left;
+      offY = ev.clientY - r.top;
+      barra.setPointerCapture(ev.pointerId);
+      enfocarVentana(ventana.id);
+    });
+    barra.addEventListener("pointermove", function(ev){
+      if(!arrastrando) return;
+      var x = Math.max(0, Math.min(ev.clientX - offX, window.innerWidth - ventana.offsetWidth));
+      var y = Math.max(145, Math.min(ev.clientY - offY, window.innerHeight - 110));
+      ventana.style.left = x + "px";
+      ventana.style.top = y + "px";
+    });
+    barra.addEventListener("pointerup", function(ev){
+      arrastrando = false;
+      try{ barra.releasePointerCapture(ev.pointerId); }catch(e){}
+    });
+    barra.addEventListener("pointercancel", function(){ arrastrando = false; });
+  }
+
+  /* =========================================================
+     Abrir ítems (carpeta / imagen / texto)
+     ========================================================= */
+  function abrirItem(item){
+    if(item.tipo === "carpeta") abrirCarpeta(item);
+    else if(item.tipo === "imagen") abrirVisorImagen(item);
+    else abrirDocumento(item);
+  }
+
+  function buscarVentanaPorItem(itemId, tipo){
+    var encontrada = null;
+    Object.keys(estado.ventanas).forEach(function(k){
+      var info = estado.ventanas[k];
+      if(info.itemId === itemId && info.tipo === tipo) encontrada = k;
+    });
+    return encontrada;
+  }
+
+  function abrirCarpeta(item){
+    var ya = buscarVentanaPorItem(item.id, "carpeta");
+    if(ya){ enfocarVentana(ya); return; }
+    var w = crearVentana({ titulo:item.nombre, tipo:"carpeta", itemId:item.id, ancho:560 });
+    if(nivelActual === 1 && item.id === ids.documentos) estado.flags.abrioCarpeta = true;
+    pintarCarpeta(w, item);
+    revisarEjercicios();
+  }
+
+  function primeraCarpetaAbierta(){
+    var res = null;
+    Object.keys(estado.ventanas).forEach(function(k){
+      var info = estado.ventanas[k];
+      if(info.tipo === "carpeta" && !res) res = info;
+    });
+    return res;
+  }
+
+  function pintarCarpeta(w, item){
+    var cuerpo = w.cuerpo;
+    cuerpo.innerHTML = "";
+    var ruta=document.createElement('div');ruta.className='ruta-primero';
+    ruta.textContent=item.id===ids.documentos?'Escritorio / Documentos':'Escritorio / Documentos / '+item.nombre;
+    ruta.style.cssText='font-size:13px;color:#657b94;background:#edf2f8;border:1px solid #dce4ee;padding:8px 10px;border-radius:6px;margin-bottom:12px';
+    cuerpo.appendChild(ruta);
+    var toolbar = document.createElement("div");
+    toolbar.className = "toolbar";
+    var btnPegar = document.createElement("button");
+    btnPegar.type = "button";
+    btnPegar.className = "btn verde";
+    btnPegar.textContent = "Pegar imagen";
+    btnPegar.disabled = !estado.portapapeles;
+    btnPegar.title = estado.portapapeles ? ("Pegar " + estado.portapapeles.nombre) : "Primero copia una imagen de la galería";
+    btnPegar.addEventListener("click", function(){ pegarEnCarpeta(item); });
+    var info = document.createElement("span");
+    info.className = "mini-tag";
+    info.style.fontSize = "15px";
+    info.textContent = item.hijos.length + " elemento(s)";
+    toolbar.appendChild(btnPegar);
+    toolbar.appendChild(info);
+    cuerpo.appendChild(toolbar);
+
+    if(item.hijos.length === 0){
+      var vac = document.createElement("div");
+      vac.className = "vaciar";
+      vac.textContent = "Esta carpeta está vacía. Usa «Pegar imagen» para añadir una imagen.";
+      cuerpo.appendChild(vac);
+      return;
+    }
+    var ul = document.createElement("ul");
+    ul.className = "contenido-grid";
+    item.hijos.forEach(function(hijo){
+      ul.appendChild(crearBotonItem(hijo, "ventana"));
+    });
+    cuerpo.appendChild(ul);
+  }
+
+  function abrirVisorImagen(item){
+    var img = buscarImagen(item.img);
+    if(!img){ aviso("No se encontró la imagen.", "error"); return; }
+    var w = crearVentana({ titulo:"Imagen: " + item.nombre, tipo:"visor", ancho:480 });
+    var cuerpo = w.cuerpo;
+    cuerpo.innerHTML = "";
+    var el = document.createElement("img");
+    el.className = "visor-img";
+    el.src = datosUrl(img.svg);
+    el.alt = "Ilustración " + img.nombre;
+    cuerpo.appendChild(el);
+
+    var bar = document.createElement("div");
+    bar.className = "toolbar";
+    bar.style.marginTop = "14px";
+    bar.style.justifyContent = "center";
+
+    var bCopiar = document.createElement("button");
+    bCopiar.type = "button"; bCopiar.className = "btn"; bCopiar.textContent = "Copiar imagen";
+    bCopiar.addEventListener("click", function(){ copiarImagen(img); });
+
+    var bDesc = document.createElement("button");
+    bDesc.type = "button"; bDesc.className = "btn morado"; bDesc.textContent = "Guardar en Descargas del juego";
+    bDesc.addEventListener("click", function(){ descargarImagen(img); });
+
+    bar.appendChild(bCopiar);
+    bar.appendChild(bDesc);
+    cuerpo.appendChild(bar);
+  }
+
+  function abrirDocumento(item){
+    var ya = buscarVentanaPorItem(item.id, "texto");
+    if(ya){ enfocarVentana(ya); return; }
+    var w = crearVentana({ titulo:"Bloc de notas", tipo:"texto", itemId:item.id, ancho:560 });
+    construirBloc(w, item);
+  }
+
+  function construirBloc(w, item){
+    var cuerpo = w.cuerpo;
+    cuerpo.innerHTML = "";
+    var et = document.createElement("label");
+    et.className = "campo";
+    et.textContent = "Nombre del archivo:";
+    var nombre = document.createElement("input");
+    nombre.type = "text";
+    nombre.value = item ? item.nombre : "Mi-nota.txt";
+    nombre.setAttribute("aria-label","Nombre del archivo de texto");
+
+    var et2 = document.createElement("label");
+    et2.className = "campo";
+    et2.textContent = "Escribe aquí (practica el teclado):";
+    var area = document.createElement("textarea");
+    area.value = item ? item.contenido : "";
+    area.setAttribute("aria-label","Área para escribir y practicar el teclado");
+    area.addEventListener("input", function(){
+      if(nivelActual === 6 && area.value.trim().length > 0) estado.flags.escribio = true;
+      revisarEjercicios();
+    });
+
+    var bar = document.createElement("div");
+    bar.className = "toolbar";
+    bar.style.marginTop = "12px";
+    var guardar = document.createElement("button");
+    guardar.type = "button";
+    guardar.className = "btn verde";
+    guardar.textContent = "Guardar en el escritorio";
+    guardar.addEventListener("click", function(){
+      var n = nombre.value.trim() || "Mi-nota.txt";
+      if(!/\.(txt|doc)$/i.test(n)) n += ".txt";
+      if(item){
+        item.nombre = n;
+        item.contenido = area.value;
+      }else{
+        var nuevo = texto(n, area.value);
+        nuevo.creadoPorUsuario = true;
+        estado.escritorio.push(nuevo);
+      }
+      if(nivelActual === 7) estado.flags.guardo = true;
+      renderEscritorio();
+      aviso("¡Guardado en el escritorio como «" + n + "»!", "exito");
+      revisarEjercicios();
+    });
+    var nuevoBtn = document.createElement("button");
+    nuevoBtn.type = "button";
+    nuevoBtn.className = "btn";
+    nuevoBtn.textContent = "Limpiar texto";
+    nuevoBtn.addEventListener("click", function(){ area.value = ""; area.focus(); });
+
+    bar.appendChild(guardar);
+    bar.appendChild(nuevoBtn);
+    cuerpo.appendChild(et);
+    cuerpo.appendChild(nombre);
+    cuerpo.appendChild(et2);
+    cuerpo.appendChild(area);
+    cuerpo.appendChild(bar);
+    setTimeout(function(){ area.focus(); }, 30);
+  }
+
+  /* =========================================================
+     Portapapeles interno + descarga real
+     ========================================================= */
+  function copiarImagen(img){
+    estado.portapapeles = { imgId:img.id, nombre:img.nombre };
+    estado.flags.copio = true;
+    aviso("Imagen «" + img.nombre + "» copiada al portapapeles del juego.", "exito");
+    actualizarBotonesPegar();
+    revisarEjercicios();
+  }
+
+  function pegarEnCarpeta(carpetaItem){
+    if(!estado.portapapeles){
+      aviso("Primero copia una imagen de la galería (botón derecho > Copiar).", "error");
+      return;
+    }
+    if(document.getElementById('fiestaNivel')) return;
+    var destino = nivelActual===4 ? ids.dibujos : nivelActual===5 ? ids.descargas : null;
+    if(!estado.explorando && carpetaItem.id!==destino){aviso('Sigue el turno: pega en '+(nivelActual===4?'Imágenes':nivelActual===5?'Descargas del juego':'la carpeta cuando llegue su nivel')+'.', 'error');return;}
+    if(carpetaItem.hijos.some(function(h){return h.tipo==='imagen' && h.img===estado.portapapeles.imgId;})){aviso('¡Esta imagen ya está! Elige otra de la galería.', 'exito');return;}
+    var nombre = estado.portapapeles.nombre;
+    var imgId = estado.portapapeles.imgId;
+    carpetaItem.hijos.push(imagen(nombre, imgId));
+    estado.flags.pego = true;
+    aviso("¡Imagen pegada en " + carpetaItem.nombre + "! (Juego: no se copia ningún archivo real.)", "exito");
+    repintarCarpetas();
+    renderEscritorio();
+    revisarEjercicios();
+  }
+
+  function pegarEnEscritorio(){
+    if(!estado.portapapeles){
+      aviso("Primero copia una imagen de la galería (botón derecho > Copiar).", "error");
+      return;
+    }
+    estado.escritorio.push(imagen(estado.portapapeles.nombre, estado.portapapeles.imgId));
+    aviso("Imagen pegada en el escritorio (simulado).", "exito");
+    renderEscritorio();
+    revisarEjercicios();
+  }
+
+  function actualizarBotonesPegar(){
+    Object.keys(estado.ventanas).forEach(function(k){
+      var info = estado.ventanas[k];
+      if(info.tipo !== "carpeta") return;
+      var item = buscarItemPorId(info.itemId);
+      if(!item) return;
+      var btn = info.el.querySelector(".toolbar .btn.verde");
+      var vac = info.el.querySelector(".vaciar");
+      if(btn){
+        btn.disabled = !estado.portapapeles;
+        btn.title = estado.portapapeles ? ("Pegar " + estado.portapapeles.nombre) : "Primero copia una imagen de la galería";
+      }
+      if(vac) vac.textContent = estado.portapapeles ? "Esta carpeta está vacía. Pulsa «Pegar imagen» para añadirla." : "Esta carpeta está vacía. Usa «Pegar imagen» para añadir una imagen.";
+    });
+  }
+
+  function repintarCarpetas(){
+    Object.keys(estado.ventanas).forEach(function(k){
+      var info = estado.ventanas[k];
+      if(info.tipo !== "carpeta") return;
+      var item = buscarItemPorId(info.itemId);
+      if(item) pintarCarpeta({ cuerpo: info.el.querySelector(".cuerpo") }, item);
+    });
+    actualizarBotonesPegar();
+  }
+
+  function descargarImagen(img){
+    if(!estado.explorando && nivelActual!==5){aviso('Primero completa el nivel actual. Las descargas van después de Imágenes.', 'error');return;}
+    estado.portapapeles={imgId:img.id,nombre:img.nombre};
+    pegarEnCarpeta(buscarItemPorId(ids.descargas));
+  }
+
+  /* =========================================================
+     Buscar ítems por id
+     ========================================================= */
+  function buscarItemPorId(id, lista){
+    lista = lista || estado.escritorio;
+    for(var i=0;i<lista.length;i++){
+      if(lista[i].id === id) return lista[i];
+      if(lista[i].hijos){
+        var enc = buscarItemPorId(id, lista[i].hijos);
+        if(enc) return enc;
+      }
+    }
+    return null;
+  }
+
+  /* =========================================================
+     Menús de contexto
+     ========================================================= */
+  function menuDeImagenGaleria(img, x, y){
+    var carpetaAbierta = primeraCarpetaAbierta();
+    var items = [];
+    items.push({ label:"Copiar imagen", action:function(){ copiarImagen(img); } });
+    if(carpetaAbierta){
+      var cItem = buscarItemPorId(carpetaAbierta.itemId);
+      items.push({ label:"Pegar en «" + (cItem?cItem.nombre:"carpeta") + "»", action:function(){
+        copiarImagen(img);
+        if(cItem) pegarEnCarpeta(cItem);
+      }});
+    }
+    items.push({ label:"Guardar en Descargas del juego", action:function(){ descargarImagen(img); } });
+    items.push({ label:"Pegar en el escritorio", action:function(){
+      estado.portapapeles = { imgId:img.id, nombre:img.nombre };
+      pegarEnEscritorio();
+    }});
+    items.push({ label:"Ver imagen grande", action:function(){ abrirVisorImagen(imagen(img.nombre, img.id)); } });
+
+    if(nivelActual === 3) estado.flags.abrioMenu = true;
+    mostrarMenu(x, y, "Imagen: " + img.nombre, items);
+    revisarEjercicios();
+  }
+
+  function menuDeItem(item, x, y){
+    var items = [];
+    items.push({ label:"Abrir", action:function(){ abrirItem(item); } });
+    if(item.tipo === "imagen"){
+      var img = buscarImagen(item.img);
+      if(img){
+        items.push({ label:"Copiar imagen", action:function(){ copiarImagen(img); } });
+        items.push({ label:"Guardar en Descargas del juego", action:function(){ descargarImagen(img); } });
+      }
+      items.push({ label:"Pegar en el escritorio", action:function(){ pegarEnEscritorio(); } });
+    }
+    if(item.tipo === "carpeta"){
+      items.push({ label:"Abrir carpeta", action:function(){ abrirCarpeta(item); } });
+      items.push({ label:"Pegar imagen aquí", disabled:!estado.portapapeles, action:function(){ pegarEnCarpeta(item); } });
+    }
+    items.push({ label:"Borrar (simulado, no borra archivos reales)", action:function(){ borrarSimulado(item); } });
+    mostrarMenu(x, y, item.nombre, items);
+  }
+
+  function borrarSimulado(item){
+    function quitarDe(lista){
+      var idx = lista.indexOf(item);
+      if(idx >= 0){ lista.splice(idx,1); return true; }
+      for(var i=0;i<lista.length;i++){
+        if(lista[i].hijos && quitarDe(lista[i].hijos)) return true;
+      }
+      return false;
+    }
+    quitarDe(estado.escritorio);
+    if(estado.idSel === item.id) estado.idSel = null;
+    renderEscritorio();
+    repintarCarpetas();
+    aviso("«" + item.nombre + "» borrado SOLO en el juego. Tus archivos reales no se tocaron.", "exito");
+  }
+
+  /* =========================================================
+     Ejercicios guiados
+     ========================================================= */
+  function cantidadEn(id){
+    var c=buscarItemPorId(id);
+    return c ? IMAGENES.filter(function(img){return c.hijos.some(function(h){return h.tipo==='imagen' && h.img===img.id;});}).length : 0;
+  }
+  var EJERCICIOS = [
+    {txt:'Haz <strong>un clic</strong> en <em>Documentos</em> para seleccionarlo.',check:function(){return !!estado.flags.seleccionoDibujos;}},
+    {txt:'Abre <em>Documentos</em> con <strong>dos clics rápidos</strong>.',check:function(){return !!estado.flags.abrioCarpeta;}},
+    {txt:'Cierra <em>Documentos</em> con la <strong>X</strong>.',check:function(){return !!estado.flags.cerroConX;}},
+    {txt:'Haz <strong>botón derecho</strong> sobre una imagen de la galería.',check:function(){return !!estado.flags.abrioMenu;}},
+    {txt:'Abre <strong>Documentos → Imágenes</strong>. Copia y pega las <strong>6 imágenes diferentes</strong> de la galería, una por una.',check:function(){return cantidadEn(ids.dibujos)===IMAGENES.length;}},
+    {txt:'Ahora abre <strong>Documentos → Descargas del juego</strong>. Copia y pega otra vez las <strong>6 imágenes diferentes</strong>. Todo queda dentro del juego.',check:function(){return cantidadEn(ids.descargas)===IMAGENES.length;}},
+    {txt:'Abre el <strong>Bloc</strong> y escribe tu nombre.',check:function(){return !!estado.flags.escribio;}},
+    {txt:'Pulsa <strong>Guardar en el escritorio</strong>.',check:function(){return !!estado.flags.guardo;}}
+  ];
+  function celebrarNivel(numero){
+    var fiesta=document.createElement('div');fiesta.id='fiestaNivel';
+    fiesta.setAttribute('role','status');
+    fiesta.innerHTML='<div class="fiesta-tarjeta"><div style="font-size:30px">🎉 ⭐ 🎉</div><h2>¡Hurra!</h2><p>Completaste el nivel '+numero+'.</p></div>';
+    document.body.appendChild(fiesta);
+    setTimeout(function(){if(!fiesta.isConnected)return;fiesta.remove();revisarEjercicios();},1800);
+  }
+
+  var ventanaEjercicios = null;
+
+  function abrirEjercicios(){
+    if(ventanaEjercicios && estado.ventanas[ventanaEjercicios]){ enfocarVentana(ventanaEjercicios); return; }
+    var w = crearVentana({ titulo:"Ejercicios guiados", tipo:"ejercicios", ancho:600 });
+    ventanaEjercicios = w.id;
+    var cuerpo = w.cuerpo;
+    cuerpo.innerHTML = "";
+    var prog = document.createElement("div");
+    prog.className = "progreso-wrap";
+    prog.innerHTML = '<div class="barra-progreso"><i id="barraProgreso"></i></div><p class="progreso-txt" id="progresoTxt">Progreso</p>';
+    var ol = document.createElement("ol");
+    ol.className = "ejercicios";
+    ol.id = "listaEjercicios";
+    EJERCICIOS.forEach(function(ej, i){
+      var li = document.createElement("li");
+      li.className = "ejercicio";
+      li.dataset.idx = String(i);
+      li.innerHTML = '<span class="marca" aria-hidden="true">○</span><span><span class="num">' + (i+1) + '.</span> ' + ej.txt + '</span>';
+      ol.appendChild(li);
+    });
+    var pie = document.createElement("div");
+    pie.className = "toolbar";
+    pie.style.marginTop = "12px";
+    var bRein = document.createElement("button");
+    bRein.type = "button"; bRein.className = "btn rojo"; bRein.textContent = "Reiniciar progreso";
+    bRein.addEventListener("click", function(){ reiniciar(); });
+    pie.appendChild(bRein);
+    cuerpo.appendChild(prog);
+    cuerpo.appendChild(ol);
+    cuerpo.appendChild(pie);
+    revisarEjercicios();
+  }
+
+  function revisarEjercicios(){
+    if(!estado.explorando && !document.getElementById('fiestaNivel') && nivelActual < EJERCICIOS.length && EJERCICIOS[nivelActual].check()){
+      nivelesHechos[nivelActual]=true; nivelActual++;
+      celebrarNivel(nivelActual);
+    }
+    var hechos = nivelActual;
+    var estadoNivel = document.getElementById('estadoNivel');
+    if(estadoNivel){
+      var mensaje = nivelActual < EJERCICIOS.length ? '<strong>Paso '+(nivelActual+1)+' de '+EJERCICIOS.length+'</strong><span id="pasoActualTexto">'+EJERCICIOS[nivelActual].txt+'</span>' : '<strong>⭐ ¡Completaste todos los niveles!</strong>';
+      if(nivelActual===4 || nivelActual===5){
+        var carpetaId=nivelActual===4?ids.dibujos:ids.descargas;
+        mensaje+='<br><strong>'+cantidadEn(carpetaId)+' / '+IMAGENES.length+' imágenes</strong> · Faltan: '+IMAGENES.filter(function(img){return !buscarItemPorId(carpetaId).hijos.some(function(h){return h.img===img.id;});}).map(function(img){return img.nombre;}).join(', ');
+      }
+      if(estadoNivel.innerHTML!==mensaje) estadoNivel.innerHTML=mensaje;
+    }
+    var total = EJERCICIOS.length;
+    var barra = $("#barraProgreso");
+    var txt = $("#progresoTxt");
+    if(barra) barra.style.width = Math.round(hechos/total*100) + "%";
+    if(txt) txt.textContent = "Progreso: " + hechos + " de " + total + (hechos===total ? " — ¡Terminaste! 🎉" : "");
+
+    var lista = $("#listaEjercicios");
+    if(lista){
+      $$("li.ejercicio", lista).forEach(function(li, i){
+        var ej = EJERCICIOS[i];
+        var hecho = !!nivelesHechos[i];
+        li.classList.toggle("hecho", hecho);
+        li.classList.toggle("actual", i === nivelActual);
+        li.querySelector(".marca").textContent = hecho ? "✔" : i === nivelActual ? "▶" : "🔒";
+      });
+    }
+    actualizarBotonesPegar();
+  }
+
+  /* =========================================================
+     Ayuda
+     ========================================================= */
+  function abrirAyuda(){
+    var w = crearVentana({ titulo:"Ayuda: usa tu mouse", tipo:"ayuda", ancho:620 });
+    w.cuerpo.innerHTML =
+      '<h3>El mouse (ratón)</h3>' +
+      '<ul>' +
+        '<li><strong>Un clic:</strong> selecciona una carpeta o un archivo (se pone de color).</li>' +
+        '<li><strong>Doble clic:</strong> abre lo que seleccionaste.</li>' +
+        '<li><strong>Botón derecho:</strong> abre un menú con opciones (copiar, pegar, descargar, borrar).</li>' +
+        '<li><strong>Arrastrar la barra</strong> de la ventana: la mueve por la pantalla.</li>' +
+        '<li><strong>La X</strong> de la esquina: cierra la ventana.</li>' +
+      '</ul>' +
+      '<h3>¿Usas una Mac?</h3>' +
+      '<ul>' +
+        '<li>El <strong>botón derecho</strong> se hace con <strong>Ctrl + clic</strong> o con dos dedos en el trackpad.</li>' +
+        '<li>El <strong>doble clic</strong> es igual que en Windows: dos toques rápidos.</li>' +
+      '</ul>' +
+      '<h3>Teclado</h3>' +
+      '<ul>' +
+        '<li><strong>Escape (Esc):</strong> cierra los menús.</li>' +
+        '<li><strong>Tab:</strong> salta entre botones; <strong>Enter o Espacio:</strong> activa el botón elegido.</li>' +
+      '</ul>' +
+      '<h3>Sobre borrar y pegar</h3>' +
+      '<p>Todo es un <strong>juego</strong>. Cuando borras o pegas, la computadora lo explica pero ' +
+      '<strong>no toca ningún archivo real</strong>. Las imágenes se guardan en <em>Descargas del juego</em>, dentro de Documentos. No se descargan archivos a la computadora.</p>';
+  }
+
+  /* =========================================================
+     Modo explorar / reiniciar
+     ========================================================= */
+  function alternarExplorar(forzar){
+    estado.explorando = (typeof forzar === "boolean") ? forzar : !estado.explorando;
+    document.body.classList.toggle("explorando", estado.explorando);
+    var b = $("#btnExplorar");
+    b.setAttribute("aria-pressed", estado.explorando ? "true" : "false");
+    vestirBoton(b,"explorar",estado.explorando ? "Salir de explorar" : "Explorar");
+    if(estado.explorando){
+      posicionarEtiquetas();
+      aviso("Modo explorar encendido: mira las etiquetas amarillas.", "exito");
+    }
+  }
+
+  function posicionarEtiquetas(){
+    var z = $("#zonaIconos").getBoundingClientRect();
+    var g = $("#galeria").getBoundingClientRect();
+    var t = $("#barraTareas").getBoundingClientRect();
+    colocarEtiqueta("escritorio", z.left + 12, z.top + 12);
+    colocarEtiqueta("galeria", g.left + 12, g.top + 12);
+    colocarEtiqueta("tareas", t.left + 12, t.top - 34);
+  }
+  function colocarEtiqueta(pos, x, y){
+    var el = document.querySelector('.etiqueta-explorar[data-pos="' + pos + '"]');
+    if(!el) return;
+    el.style.left = Math.max(6, x) + "px";
+    el.style.top = Math.max(6, y) + "px";
+  }
+
+  function reiniciar(){
+    Object.keys(estado.ventanas).forEach(function(k){ cerrarVentana(k, false); });
+    ventanaEjercicios = null;
+    cerrarMenu();
+    iniciarSistema();
+    renderEscritorio();
+    renderGaleria();
+    alternarExplorar(false);
+    aviso("¡Escritorio reiniciado! Todo está listo para empezar otra vez.", "exito");
+    revisarEjercicios();
+  }
+
+  /* =========================================================
+     Reloj
+     ========================================================= */
+  function pintarReloj(){
+    var d = new Date();
+    var hh = String(d.getHours()).padStart(2,"0");
+    var mm = String(d.getMinutes()).padStart(2,"0");
+    $("#reloj").textContent = hh + ":" + mm;
+  }
+
+  /* =========================================================
+     Eventos globales
+     ========================================================= */
+  function conectarEventos(){
+    $("#btnInicio").addEventListener("click", function(ev){
+      ev.stopPropagation();
+      if(menuAbierto && menuEl.dataset.origen === "inicio"){ cerrarMenu(); return; }
+      menuEl.dataset.origen = "inicio";
+      abrirMenuInicio();
+    });
+    $("#btnEjercicios").addEventListener("click", abrirEjercicios);
+    $("#btnBloc").addEventListener("click", abrirBloc);
+    $("#btnAyuda").addEventListener("click", abrirAyuda);
+    $("#btnExplorar").addEventListener("click", function(){ alternarExplorar(); });
+    $("#btnReiniciar").addEventListener("click", reiniciar);
+
+    document.addEventListener("click", function(ev){
+      if(menuAbierto && !menuEl.contains(ev.target) && ev.target.id !== "btnInicio") cerrarMenu();
+    });
+
+    document.addEventListener("contextmenu", function(ev){
+      if(ev.target.closest(".icono") || ev.target.closest(".gal-item") || ev.target.closest("#menu")) return;
+      ev.preventDefault();
+      if(ev.target.closest(".cuerpo")){
+        var vent = ev.target.closest(".ventana");
+        var item = vent ? buscarItemPorId(vent.dataset.itemId) : null;
+        if(item && item.tipo === "carpeta"){
+          mostrarMenu(ev.clientX, ev.clientY, "Carpeta " + item.nombre, [
+            { label:"Pegar imagen aquí", disabled:!estado.portapapeles, action:function(){ pegarEnCarpeta(item); } }
+          ]);
+          return;
+        }
+      }
+      mostrarMenu(ev.clientX, ev.clientY, "Escritorio", [
+        { label:"Pegar imagen en el escritorio", disabled:!estado.portapapeles, action:pegarEnEscritorio },
+        { label:"Abrir Bloc de notas", action:abrirBloc },
+        { label:"Abrir Ejercicios", action:abrirEjercicios },
+        { label:"Ver Ayuda", action:abrirAyuda }
+      ]);
+    });
+
+    document.addEventListener("keydown", function(ev){
+      if(ev.key === "Escape"){
+        if(menuAbierto){ ev.preventDefault(); cerrarMenu(); }
+        return;
+      }
+      if(menuAbierto){
+        var botones = $$(".menu-item:not([disabled])", menuEl);
+        var idx = botones.indexOf(document.activeElement);
+        if(ev.key === "ArrowDown"){ ev.preventDefault(); botones[(idx+1) % botones.length].focus(); }
+        else if(ev.key === "ArrowUp"){ ev.preventDefault(); botones[(idx-1+botones.length) % botones.length].focus(); }
+        else if(ev.key === "Home"){ ev.preventDefault(); botones[0].focus(); }
+        else if(ev.key === "End"){ ev.preventDefault(); botones[botones.length-1].focus(); }
+        return;
+      }
+      if(document.activeElement && document.activeElement.classList.contains("icono")){
+        if(ev.key === "Enter" || ev.key === " "){
+          ev.preventDefault();
+          var item = buscarItemPorId(document.activeElement.dataset.itemId);
+          if(item){ estado.idSel = item.id; estado.flags.selecciono = true; renderEscritorio(); abrirItem(item); }
+        }
+      }
+    });
+
+    window.addEventListener("resize", function(){
+      if(estado.explorando) posicionarEtiquetas();
+      cerrarMenu();
+    });
+
+    window.addEventListener("scroll", cerrarMenu, true);
+    window.addEventListener("blur", cerrarMenu);
+    document.addEventListener("visibilitychange", function(){ if(document.hidden) cerrarMenu(); });
+  }
+
+  function abrirBloc(){
+    var w = crearVentana({ titulo:"Bloc de notas", tipo:"texto", ancho:560 });
+    construirBloc(w, null);
+  }
+
+  /* =========================================================
+     Arranque
+     ========================================================= */
+
+  function iniciarMouseGuia(){
+    var habilitado = true, ultimo = null, temporizador;
+    var guia = document.createElement('div');
+    guia.id = 'mouseGuia'; guia.setAttribute('aria-hidden','true');
+    guia.innerHTML = '<span class="punto"></span><svg class="modelo" viewBox="0 0 80 110"><defs><linearGradient id="mouseSombra" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#94a3b8"/></linearGradient></defs><path d="M40 3 C61 3 74 20 74 45 V70 C74 96 61 106 40 106 S6 96 6 70 V45 C6 20 19 3 40 3Z" fill="url(#mouseSombra)" stroke="#334155" stroke-width="3"/><path class="boton izquierdo" d="M38 6 C20 6 9 21 9 44 V47 H38Z"/><path class="boton derecho" d="M42 6 C60 6 71 21 71 44 V47 H42Z"/><rect x="35" y="18" width="10" height="23" rx="5" fill="#475569" stroke="#fff" stroke-width="2"/><path d="M37 25H43M37 30H43" stroke="#cbd5e1"/><text id="mouseDoble" x="40" y="79" text-anchor="middle" fill="#172b4d" font-size="19" font-weight="bold"></text></svg>';
+    document.body.appendChild(guia);
+    var leyenda = document.createElement('div'); leyenda.id='guiaMouseTexto';
+    leyenda.setAttribute('role','status'); document.body.appendChild(leyenda);
+    var boton = document.createElement('button'); boton.className='btn'; boton.type='button';
+    vestirBoton(boton,'mouse','Mouse guía: sí'); boton.setAttribute('aria-pressed','true');
+    document.getElementById('btnAyuda').after(boton);
+    function ocultar(){guia.style.display='none';document.body.classList.remove('mouse-guia-activo');}
+    function indicar(){
+      var pendiente = nivelActual < EJERCICIOS.length ? nivelActual : -1;
+      var pide = 'izquierdo', mensaje = 'Amarillo: botón izquierdo · 1 clic';
+      if(estado.explorando || pendiente === -1){pide='';mensaje='Explora: mueve el mouse y prueba sus botones.';}
+      else if(document.getElementById("fiestaNivel")){pide="";mensaje="¡Hurra! Ya viene el siguiente paso…";}
+      else if(menuAbierto){mensaje='Botón izquierdo · elige una opción del menú';}
+      else if(pendiente === 1 || (pendiente === 5 && !Object.values(estado.ventanas).some(function(v){return v.tipo==='carpeta' && v.itemId===ids.descargas;}))){pide='doble';mensaje='Amarillo: botón izquierdo · 2 clics rápidos';}
+      else if(pendiente === 3 || ((pendiente === 4 || pendiente === 5) && ultimo && document.elementFromPoint(ultimo.clientX,ultimo.clientY) && document.elementFromPoint(ultimo.clientX,ultimo.clientY).closest(".gal-item"))){pide='derecho';mensaje='Amarillo: botón derecho · abre el menú';}
+      else if(pendiente === 6 && document.querySelector('textarea')){pide='';mensaje='Ahora usa el teclado para escribir tu nombre.';}
+      guia.dataset.pide=pide;
+      guia.querySelector('#mouseDoble').textContent=pide==='doble'?'2 clics':'';
+      if(leyenda.textContent!==mensaje) leyenda.textContent=mensaje;
+      leyenda.hidden=!habilitado;
+    }
+    function mover(ev){
+      if(ev.pointerType && ev.pointerType!=='mouse'){ocultar();return;}
+      ultimo=ev; indicar();
+      var objetivo=document.elementFromPoint(ev.clientX,ev.clientY);
+      if(!habilitado || !objetivo || objetivo.closest('input,textarea,[contenteditable="true"],#barraTareas')){ocultar();return;}
+      guia.style.transform='translate('+ev.clientX+'px,'+ev.clientY+'px)';
+      guia.classList.toggle('invertir-x',ev.clientX>innerWidth-100);
+      guia.classList.toggle('invertir-y',ev.clientY>innerHeight-130);
+      guia.style.display='block';document.body.classList.add('mouse-guia-activo');
+    }
+    boton.addEventListener('click',function(){habilitado=!habilitado;vestirBoton(boton,'mouse','Mouse guía: '+(habilitado?'sí':'no'));boton.setAttribute('aria-pressed',String(habilitado));ocultar();indicar();});
+    document.addEventListener('pointermove',mover);
+    document.addEventListener('pointerdown',function(ev){
+      if(ev.pointerType!=='mouse' || !habilitado)return;
+      var pulsa=ev.button===2 || (ev.button===0 && ev.ctrlKey)?'derecho':ev.button===0?'izquierdo':'';
+      guia.dataset.pulsa=pulsa;clearTimeout(temporizador);
+      temporizador=setTimeout(function(){guia.dataset.pulsa='';indicar();},450);
+    },true);
+    document.addEventListener('pointerout',function(ev){if(!ev.relatedTarget)ocultar();});
+    window.addEventListener('blur',ocultar);
+    document.addEventListener('keydown',function(){ocultar();});
+    // Reaccionar al progreso y a ventanas/menús, sin sondeos constantes.
+    var observar = new MutationObserver(function(){indicar();});
+    observar.observe(document.getElementById('ventanas'),{childList:true,subtree:true});
+    observar.observe(document.getElementById('menu'),{attributes:true,attributeFilter:['hidden']});
+    observar.observe(document.body,{attributes:true,attributeFilter:['class']});
+    document.addEventListener('click',function(){indicar();});
+    document.addEventListener('contextmenu',function(){indicar();});
+    indicar();
+  }
+
+  function arrancar(){
+    iniciarSistema();
+    renderEscritorio();
+    renderGaleria();
+    conectarEventos();
+    iniciarMouseGuia();
+    vestirBarra();
+    var panelNivel=document.createElement("div");panelNivel.id="estadoNivel";panelNivel.setAttribute("role","status");document.body.appendChild(panelNivel);
+    pintarReloj();
+    setInterval(pintarReloj, 15000);
+    aviso("¡Hola! Un clic selecciona, doble clic abre. Botón derecho abre el menú.", "exito");
+    revisarEjercicios();
+  }
+
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", arrancar);
+  else arrancar();
+
+})();
+</script>
+</body>
+</html>
