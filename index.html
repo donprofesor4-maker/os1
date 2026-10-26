@@ -779,10 +779,18 @@ textarea,input[type=text]{font-size:19.2px;border-width:1px;border-radius:6px}
     });
   }
 
+  function marcarMision(paso, clave){
+    if(!estado.explorando && nivelActual === paso && !document.getElementById('fiestaNivel')){
+      estado.flags[clave] = true;
+    }
+  }
+
   function cerrarVentana(id, conX){
     var info = estado.ventanas[id];
     if(!info) return;
     if(conX) info.cerrarConX = true;
+    if(conX && info.tipo === 'texto') marcarMision(8, 'cerroBloc');
+    if(conX && info.tipo === 'visor' && info.imagenId === 'sol') marcarMision(15, 'cerroSol');
     if(conX && info.itemId === ids.documentos && nivelActual === 2) estado.flags.cerroConX = true;
     if(info.el.parentNode) info.el.parentNode.removeChild(info.el);
     delete estado.ventanas[id];
@@ -893,6 +901,9 @@ textarea,input[type=text]{font-size:19.2px;border-width:1px;border-radius:6px}
     var img = buscarImagen(item.img);
     if(!img){ aviso("No se encontró la imagen.", "error"); return; }
     var w = crearVentana({ titulo:"Imagen: " + item.nombre, tipo:"visor", ancho:480 });
+    estado.ventanas[w.id].imagenId = img.id;
+    if(img.id === 'sol') marcarMision(14, 'vioSol');
+    revisarEjercicios();
     var cuerpo = w.cuerpo;
     cuerpo.innerHTML = "";
     var el = document.createElement("img");
@@ -924,6 +935,8 @@ textarea,input[type=text]{font-size:19.2px;border-width:1px;border-radius:6px}
     if(ya){ enfocarVentana(ya); return; }
     var w = crearVentana({ titulo:"Bloc de notas", tipo:"texto", itemId:item.id, ancho:560 });
     construirBloc(w, item);
+    if(item.creadoPorUsuario) marcarMision(9, 'abrioNota');
+    revisarEjercicios();
   }
 
   function construirBloc(w, item){
@@ -945,6 +958,7 @@ textarea,input[type=text]{font-size:19.2px;border-width:1px;border-radius:6px}
     area.setAttribute("aria-label","Área para escribir y practicar el teclado");
     area.addEventListener("input", function(){
       if(nivelActual === 6 && area.value.trim().length > 0) estado.flags.escribio = true;
+      if(item && item.creadoPorUsuario && area.value.trim().toLowerCase() === 'hola') marcarMision(11, 'escribioHola');
       revisarEjercicios();
     });
 
@@ -967,6 +981,7 @@ textarea,input[type=text]{font-size:19.2px;border-width:1px;border-radius:6px}
         estado.escritorio.push(nuevo);
       }
       if(nivelActual === 7) estado.flags.guardo = true;
+      if(item && item.creadoPorUsuario && area.value.trim().toLowerCase() === 'hola') marcarMision(12, 'guardoHola');
       renderEscritorio();
       aviso("¡Guardado en el escritorio como «" + n + "»!", "exito");
       revisarEjercicios();
@@ -975,7 +990,11 @@ textarea,input[type=text]{font-size:19.2px;border-width:1px;border-radius:6px}
     nuevoBtn.type = "button";
     nuevoBtn.className = "btn";
     nuevoBtn.textContent = "Limpiar texto";
-    nuevoBtn.addEventListener("click", function(){ area.value = ""; area.focus(); });
+    nuevoBtn.addEventListener("click", function(){
+      area.value = ""; area.focus();
+      if(item && item.creadoPorUsuario) marcarMision(10, 'limpioNota');
+      revisarEjercicios();
+    });
 
     bar.appendChild(guardar);
     bar.appendChild(nuevoBtn);
@@ -1097,6 +1116,7 @@ textarea,input[type=text]{font-size:19.2px;border-width:1px;border-radius:6px}
     items.push({ label:"Ver imagen grande", action:function(){ abrirVisorImagen(imagen(img.nombre, img.id)); } });
 
     if(nivelActual === 3) estado.flags.abrioMenu = true;
+    if(img.id === 'sol') marcarMision(13, 'menuSol');
     mostrarMenu(x, y, "Imagen: " + img.nombre, items);
     revisarEjercicios();
   }
@@ -1151,7 +1171,15 @@ textarea,input[type=text]{font-size:19.2px;border-width:1px;border-radius:6px}
     {txt:'Abre <strong>Documentos → Imágenes</strong>. Copia y pega las <strong>6 imágenes diferentes</strong> de la galería, una por una.',check:function(){return cantidadEn(ids.dibujos)===IMAGENES.length;}},
     {txt:'Ahora abre <strong>Documentos → Descargas del juego</strong>. Copia y pega otra vez las <strong>6 imágenes diferentes</strong>. Todo queda dentro del juego.',check:function(){return cantidadEn(ids.descargas)===IMAGENES.length;}},
     {txt:'Abre el <strong>Bloc</strong> y escribe tu nombre.',check:function(){return !!estado.flags.escribio;}},
-    {txt:'Pulsa <strong>Guardar en el escritorio</strong>.',check:function(){return !!estado.flags.guardo;}}
+    {txt:'Pulsa <strong>Guardar en el escritorio</strong>.',check:function(){return !!estado.flags.guardo;}},
+    {txt:'Cierra el <strong>Bloc de notas</strong> con la <strong>X</strong>.',check:function(){return !!estado.flags.cerroBloc;}},
+    {txt:'Busca la nota que guardaste en el escritorio y ábrela con <strong>dos clics rápidos</strong>.',check:function(){return !!estado.flags.abrioNota;}},
+    {txt:'Pulsa <strong>Limpiar texto</strong> en tu nota.',check:function(){return !!estado.flags.limpioNota;}},
+    {txt:'Escribe la palabra <strong>hola</strong> en tu nota.',check:function(){return !!estado.flags.escribioHola;}},
+    {txt:'Pulsa <strong>Guardar en el escritorio</strong> para guardar tu saludo.',check:function(){return !!estado.flags.guardoHola;}},
+    {txt:'Haz <strong>botón derecho</strong> sobre el <strong>Sol</strong> de la galería.',check:function(){return !!estado.flags.menuSol;}},
+    {txt:'En el menú del Sol, elige <strong>Ver imagen grande</strong>. Si se cerró el menú, haz botón derecho en el Sol otra vez.',check:function(){return !!estado.flags.vioSol;}},
+    {txt:'Cierra la ventana <strong>Imagen: Sol</strong> con la <strong>X</strong>.',check:function(){return !!estado.flags.cerroSol;}}
   ];
   function celebrarNivel(numero){
     var fiesta=document.createElement('div');fiesta.id='fiestaNivel';
@@ -1411,9 +1439,10 @@ textarea,input[type=text]{font-size:19.2px;border-width:1px;border-radius:6px}
       if(estado.explorando || pendiente === -1){pide='';mensaje='Explora: mueve el mouse y prueba sus botones.';}
       else if(document.getElementById("fiestaNivel")){pide="";mensaje="¡Hurra! Ya viene el siguiente paso…";}
       else if(menuAbierto){mensaje='Botón izquierdo · elige una opción del menú';}
-      else if(pendiente === 1 || (pendiente === 5 && !Object.values(estado.ventanas).some(function(v){return v.tipo==='carpeta' && v.itemId===ids.descargas;}))){pide='doble';mensaje='Amarillo: botón izquierdo · 2 clics rápidos';}
-      else if(pendiente === 3 || ((pendiente === 4 || pendiente === 5) && ultimo && document.elementFromPoint(ultimo.clientX,ultimo.clientY) && document.elementFromPoint(ultimo.clientX,ultimo.clientY).closest(".gal-item"))){pide='derecho';mensaje='Amarillo: botón derecho · abre el menú';}
+      else if(pendiente === 1 || pendiente === 9 || (pendiente === 5 && !Object.values(estado.ventanas).some(function(v){return v.tipo==='carpeta' && v.itemId===ids.descargas;}))){pide='doble';mensaje='Amarillo: botón izquierdo · 2 clics rápidos';}
+      else if(pendiente === 3 || pendiente === 13 || ((pendiente === 4 || pendiente === 5) && ultimo && document.elementFromPoint(ultimo.clientX,ultimo.clientY) && document.elementFromPoint(ultimo.clientX,ultimo.clientY).closest(".gal-item"))){pide='derecho';mensaje='Amarillo: botón derecho · abre el menú';}
       else if(pendiente === 6 && document.querySelector('textarea')){pide='';mensaje='Ahora usa el teclado para escribir tu nombre.';}
+      if(pendiente === 11 && !document.getElementById('fiestaNivel')){pide='';mensaje='Ahora usa el teclado para escribir hola.';}
       guia.dataset.pide=pide;
       guia.querySelector('#mouseDoble').textContent=pide==='doble'?'2 clics':'';
       if(leyenda.textContent!==mensaje) leyenda.textContent=mensaje;
